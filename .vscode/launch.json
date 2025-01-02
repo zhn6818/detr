@@ -1,0 +1,29 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "PyTorch Distributed Training",
+            "type": "debugpy",
+            "request": "launch",
+            // "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "program": "/root/anaconda3/envs/pytorch_c/lib/python3.8/site-packages/torch/distributed/launch.py",
+            "args": [
+                
+                "--nproc_per_node",
+                "4",
+                "--use_env",
+                "main.py",
+                "--coco_path",
+                "/data1/zhn/2022/coco-2017/",
+                
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0,1,2,3"
+            }
+        }
+    ]
+}
