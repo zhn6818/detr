@@ -21,7 +21,7 @@ def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)  # 创建一个参数解析器,用于DETR检测器,不显示帮助信息
     parser.add_argument('--lr', default=1e-4, type=float)  # 设置基础学习率,默认为0.0001
     parser.add_argument('--lr_backbone', default=1e-5, type=float)  # 设置backbone网络的学习率,默认为0.00001
-    parser.add_argument('--batch_size', default=2, type=int)  # 设置训练的批次大小,默认为2
+    parser.add_argument('--batch_size', default=32, type=int)  # 设置训练的批次大小,默认为2
     parser.add_argument('--weight_decay', default=1e-4, type=float)  # 设置权重衰减,用于防止过拟合,默认为0.0001
     parser.add_argument('--epochs', default=300, type=int)  # 设置训练的总轮数,默认为300轮
     parser.add_argument('--lr_drop', default=200, type=int)  # 设置学习率下降的轮数,默认在第200轮降低学习率
@@ -90,7 +90,7 @@ def get_args_parser():
     parser.add_argument('--output_dir', default='',
                         help='path where to save, empty for no saving')  # 输出目录的路径,为空则不保存
     parser.add_argument('--device', default='cuda',
-                        help='device to use for training / testing')  # 使用的设备,默认使用CUDA
+                        help='device to use for training / testing (cuda/cpu/mps)')  # 使用的设备,默认使用CUDA
     parser.add_argument('--seed', default=42, type=int)  # 随机种子,默认为42
     parser.add_argument('--resume', default='', help='resume from checkpoint')  # 从检查点恢复训练的路径
     parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
@@ -113,7 +113,13 @@ def main(args):
         assert args.masks, "Frozen training is meant for segmentation only"
     print(args)
 
-    device = torch.device(args.device)
+    # 设置设备
+    if args.device == 'cuda':
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    elif args.device == 'mps':
+        device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    else:
+        device = torch.device('cpu')
 
     # fix the seed for reproducibility
     seed = args.seed + utils.get_rank()
@@ -124,9 +130,16 @@ def main(args):
     model, criterion, postprocessors = build_model(args)
     model.to(device)
 
+    # 更新损失函数设备
+    criterion.to(device)
+
     model_without_ddp = model
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        # 分布式训练时的设备设置
+        if args.device == 'cuda':
+            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        else:
+            model = torch.nn.parallel.DistributedDataParallel(model)
         model_without_ddp = model.module
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('number of params:', n_parameters)

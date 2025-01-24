@@ -12,18 +12,31 @@
             "console": "integratedTerminal",
             "program": "/root/anaconda3/envs/pytorch_c/lib/python3.8/site-packages/torch/distributed/launch.py",
             "args": [
-                
                 "--nproc_per_node",
                 "4",
                 "--use_env",
                 "main.py",
                 "--coco_path",
                 "/data1/zhn/2022/coco-2017/",
-                
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "0,1,2,3"
             }
+        },
+        {
+            "name": "PyTorch MPS Training",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--device",
+                "mps",
+                "--coco_path",
+                "../dataset/coco_2017",
+                "--batch_size",
+                "16"
+            ]
         }
     ]
 }
