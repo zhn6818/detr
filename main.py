@@ -21,7 +21,7 @@ def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)  # 创建一个参数解析器,用于DETR检测器,不显示帮助信息
     parser.add_argument('--lr', default=1e-4, type=float)  # 设置基础学习率,默认为0.0001
     parser.add_argument('--lr_backbone', default=1e-5, type=float)  # 设置backbone网络的学习率,默认为0.00001
-    parser.add_argument('--batch_size', default=32, type=int)  # 设置训练的批次大小,默认为2
+    parser.add_argument('--batch_size', default=2, type=int)  # 设置训练的批次大小,默认为2
     parser.add_argument('--weight_decay', default=1e-4, type=float)  # 设置权重衰减,用于防止过拟合,默认为0.0001
     parser.add_argument('--epochs', default=300, type=int)  # 设置训练的总轮数,默认为300轮
     parser.add_argument('--lr_drop', default=200, type=int)  # 设置学习率下降的轮数,默认在第200轮降低学习率

@@ -17,7 +17,7 @@
                 "--use_env",
                 "main.py",
                 "--coco_path",
-                "/data1/zhn/2022/coco-2017/",
+                "/data1/zhn/2022/dataset/coco_2017/",
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "0,1,2,3"
