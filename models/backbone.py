@@ -107,6 +107,20 @@ class Joiner(nn.Sequential):
             pos.append(self[1](x).to(x.tensors.dtype))
 
         return out, pos
+# class Joiner(nn.Module):
+#     def __init__(self, backbone, position_embedding):
+#         super().__init__()
+#         self.backbone = backbone
+#         self.position_embedding = position_embedding
+
+#     def forward(self, tensor_list: NestedTensor):
+#         xs = self.backbone(tensor_list)
+#         out: List[NestedTensor] = []
+#         pos = []
+#         for name, x in xs.items():
+#             out.append(x)
+#             pos.append(self.position_embedding(x))
+#         return out, pos
 
 
 def build_backbone(args):

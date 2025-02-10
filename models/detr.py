@@ -19,53 +19,64 @@ from .transformer import build_transformer
 
 
 class DETR(nn.Module):
-    """ This is the DETR module that performs object detection """
+    """ 这是执行目标检测的DETR模块 """
     def __init__(self, backbone, transformer, num_classes, num_queries, aux_loss=False):
-        """ Initializes the model.
-        Parameters:
-            backbone: torch module of the backbone to be used. See backbone.py
-            transformer: torch module of the transformer architecture. See transformer.py
-            num_classes: number of object classes
-            num_queries: number of object queries, ie detection slot. This is the maximal number of objects
-                         DETR can detect in a single image. For COCO, we recommend 100 queries.
-            aux_loss: True if auxiliary decoding losses (loss at each decoder layer) are to be used.
+        """ 初始化DETR模型
+        参数说明:
+            backbone: 用于特征提取的主干网络模块，详见backbone.py
+            transformer: transformer架构的模块，详见transformer.py
+            num_classes: 目标类别的数量
+            num_queries: 目标查询的数量，即检测槽的数量。这是DETR在单张图像中可以检测的最大目标数量
+                        对于COCO数据集，建议设置为100
+            aux_loss: 是否使用辅助解码损失(在每个decoder层使用损失)
         """
         super().__init__()
-        self.num_queries = num_queries
-        self.transformer = transformer
-        hidden_dim = transformer.d_model
-        self.class_embed = nn.Linear(hidden_dim, num_classes + 1)
-        self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)
-        self.query_embed = nn.Embedding(num_queries, hidden_dim)
-        self.input_proj = nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
-        self.backbone = backbone
-        self.aux_loss = aux_loss
+        self.num_queries = num_queries  # 存储查询的数量
+        self.transformer = transformer  # 存储transformer模块
+        hidden_dim = transformer.d_model  # 获取transformer的隐藏维度
+        self.class_embed = nn.Linear(hidden_dim, num_classes + 1)  # 用于类别预测的线性层，+1是为了包含"无目标"类
+        self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)  # 用于边界框预测的多层感知机
+        self.query_embed = nn.Embedding(num_queries, hidden_dim)  # 可学习的查询嵌入
+        self.input_proj = nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)  # 输入特征投影层
+        self.backbone = backbone  # 存储主干网络
+        self.aux_loss = aux_loss  # 是否使用辅助损失
 
     def forward(self, samples: NestedTensor):
-        """ The forward expects a NestedTensor, which consists of:
-               - samples.tensor: batched images, of shape [batch_size x 3 x H x W]
-               - samples.mask: a binary mask of shape [batch_size x H x W], containing 1 on padded pixels
+        """ 模型的前向传播函数
+        输入参数:
+            samples: NestedTensor类型，包含:
+               - samples.tensor: 批量图像张量, 形状为 [batch_size x 3 x H x W]
+               - samples.mask: 二值掩码张量, 形状为 [batch_size x H x W], 填充像素处为1
 
-            It returns a dict with the following elements:
-               - "pred_logits": the classification logits (including no-object) for all queries.
-                                Shape= [batch_size x num_queries x (num_classes + 1)]
-               - "pred_boxes": The normalized boxes coordinates for all queries, represented as
-                               (center_x, center_y, height, width). These values are normalized in [0, 1],
-                               relative to the size of each individual image (disregarding possible padding).
-                               See PostProcess for information on how to retrieve the unnormalized bounding box.
-               - "aux_outputs": Optional, only returned when auxilary losses are activated. It is a list of
-                                dictionnaries containing the two above keys for each decoder layer.
+        返回值:
+            返回一个字典，包含以下元素:
+               - "pred_logits": 所有查询的分类逻辑值(包括无目标类别)
+                                形状= [batch_size x num_queries x (num_classes + 1)]
+               - "pred_boxes": 所有查询的标准化边界框坐标，表示为
+                               (center_x, center_y, height, width)。这些值在[0, 1]范围内标准化，
+                               相对于每个单独图像的大小(不考虑可能的填充)
+               - "aux_outputs": 可选，仅在启用辅助损失时返回。它是一个列表，
+                                包含每个解码器层的上述两个键的字典
         """
+        # 处理输入数据
         if isinstance(samples, (list, torch.Tensor)):
             samples = nested_tensor_from_tensor_list(samples)
+        
+        # 通过backbone提取特征
         features, pos = self.backbone(samples)
 
+        # 分解最后一层特征
         src, mask = features[-1].decompose()
         assert mask is not None
+        
+        # 通过transformer处理特征
         hs = self.transformer(self.input_proj(src), mask, self.query_embed.weight, pos[-1])[0]
 
-        outputs_class = self.class_embed(hs)
-        outputs_coord = self.bbox_embed(hs).sigmoid()
+        # 预测类别和边界框
+        outputs_class = self.class_embed(hs)  # 类别预测
+        outputs_coord = self.bbox_embed(hs).sigmoid()  # 边界框预测
+        
+        # 构建输出字典
         out = {'pred_logits': outputs_class[-1], 'pred_boxes': outputs_coord[-1]}
         if self.aux_loss:
             out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord)
