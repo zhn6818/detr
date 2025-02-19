@@ -36,8 +36,8 @@ class DETR(nn.Module):
         hidden_dim = transformer.d_model  # 获取transformer的隐藏维度
         self.class_embed = nn.Linear(hidden_dim, num_classes + 1)  # 用于类别预测的线性层，+1是为了包含"无目标"类
         self.bbox_embed = MLP(hidden_dim, hidden_dim, 4, 3)  # 用于边界框预测的多层感知机
-        self.query_embed = nn.Embedding(num_queries, hidden_dim)  # 可学习的查询嵌入
-        self.input_proj = nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)  # 输入特征投影层
+        self.query_embed = nn.Embedding(num_queries, hidden_dim)  # 可学习的查询嵌入 decoder的输出编码？？？
+        self.input_proj = nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)  # 输入特征投影层 backbone和transformer 通道转换
         self.backbone = backbone  # 存储主干网络
         self.aux_loss = aux_loss  # 是否使用辅助损失
 
